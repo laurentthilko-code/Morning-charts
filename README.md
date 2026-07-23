@@ -41,7 +41,8 @@ instead of reading them from your local `~/Documents` folder.
 5. Tell Laurent's Cowork assistant the repo URL once (e.g. `https://github.com/<your-username>/morning-charts`)
    so the morning brief scheduled task can be pointed at it.
 
-After that, it runs unattended Mon–Fri at 04:30 UTC — no further action needed.
+After that, it runs unattended Mon–Fri at 22:00 UTC (23:00 CET / midnight CEST, shortly
+after the US market close) — no further action needed.
 
 ## Local LaunchAgent
 
