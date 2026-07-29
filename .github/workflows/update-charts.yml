@@ -2,11 +2,14 @@ name: Update morning charts
 
 on:
   schedule:
-    # 22:00 UTC = 23:00 CET (winter) / 00:00 CEST (summer) — comfortably after
-    # the US market close (20:00 UTC summer / 21:00 UTC winter) either season,
-    # and well before the 07:00 Brussels morning brief the next day.
-    # Runs Mon–Fri (US market days); Saturday's brief reads Friday's run.
-    - cron: "0 22 * * 1-5"
+    # Run shortly after US market close (~30 min buffer) instead of before
+    # the open, so the charts capture the full trading day instead of
+    # missing it. Two entries to stay pinned to ~22:30 Brussels local
+    # across the DST transition (Apr–Oct vs Nov–Mar):
+    # 20:30 UTC = 22:30 CEST (summer) = 16:30 EDT (30 min after 16:00 ET close)
+    - cron: "30 20 * 4-10 1-5"
+    # 21:30 UTC = 22:30 CET (winter) = 16:30 EST (30 min after 16:00 ET close)
+    - cron: "30 21 * 1-3,11-12 1-5"
   workflow_dispatch: {}
 
 permissions:
