@@ -57,6 +57,7 @@ STOOQ_MAP = {
     "RGTI": "rgti.us",
     "QBTS": "qbts.us",
     "QUBT": "qubt.us",
+    "QNT": "qnt.us",
     "EURUSD=X": "eurusd",
 }
 
@@ -148,6 +149,12 @@ def normalize_to_date(df, base_date):
     norm = pd.DataFrame(index=df.index)
     for c in df.columns:
         base = df.loc[base_ts, c]
+        if pd.isna(base):
+            # Listed after base date (e.g. QNT IPO): rebase to first available price
+            first = df[c].first_valid_index()
+            if first is None:
+                continue
+            base = df.loc[first, c]
         if not pd.isna(base):
             norm[c] = 100.0 * df[c] / base
     return norm.dropna(axis=1, how="all")
@@ -206,6 +213,8 @@ def update_gold():
               f"Gold vs Gold Assets (EUR) - normalized to 100 on {BASE}", highlight="GC=F")
     RUN_STATUS["gold_chart"] = "ok"
 
+LATE_LISTING_ANCHORS = {"QNT": "IONQ"}  # Quantinuum IPO 4 Jun 2026 -> starts at IonQ level
+
 def update_uranium_quantum():
     log("Updating uranium & quantum charts...")
     BASE = "2024-12-31"
@@ -217,9 +226,10 @@ def update_uranium_quantum():
           "UEC": "Uranium Energy (UEC)", "DNN": "Denison Mines (DNN)"},
          "uranium_stocks.png", "uranium_stocks",
          f"Uranium pure plays - Index 100 on {BASE}"),
-        (["IONQ", "RGTI", "QBTS", "QUBT"],
+        (["IONQ", "RGTI", "QBTS", "QUBT", "QNT"],
          {"IONQ": "IonQ (IONQ)", "RGTI": "Rigetti (RGTI)",
-          "QBTS": "D-Wave (QBTS)", "QUBT": "Quantum Computing (QUBT)"},
+          "QBTS": "D-Wave (QBTS)", "QUBT": "Quantum Computing (QUBT)",
+          "QNT": "Quantinuum (QNT, IPO pegged to IonQ)"},
          "quantum_stocks.png", "quantum_stocks",
          f"Quantum pure plays - Index 100 on {BASE}"),
     ]
@@ -234,6 +244,13 @@ def update_uranium_quantum():
             continue
         prices = prices[prices.index >= pd.to_datetime(BASE)]
         norm = normalize_to_date(prices, BASE)
+        # Late listings (IPO after BASE): start the line at the anchor stock's
+        # index value on the IPO date, then follow the late stock's own returns.
+        for late, anchor in LATE_LISTING_ANCHORS.items():
+            if late in prices.columns and anchor in norm.columns:
+                first = prices[late].first_valid_index()
+                if first is not None and first in norm.index and not pd.isna(norm.loc[first, anchor]):
+                    norm[late] = norm.loc[first, anchor] * prices[late] / prices.loc[first, late]
         norm = norm[[s for s in symbols if s in norm.columns]]
         save_plot(norm, labels, os.path.join(DOCS, filename), title)
         RUN_STATUS[status_key] = "ok"
